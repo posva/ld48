@@ -20,7 +20,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets"], function(PIXI, p
                                        this.sprite.width, this.sprite.height);
     };
 
-    Block.prototype.update = function(t) {
+    Block.prototype.update = function(dt) {
         if (this._last_position.x !== this.position.x || this._last_position.y !== this.position.y) {
             this.rect.x = this.position.x - this.sprite.width * this.sprite.anchor.x;
             this.rect.y = this.position.y - this.sprite.height * this.sprite.anchor.y;
@@ -28,7 +28,6 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets"], function(PIXI, p
             this.rect.height = this.sprite.height;
             this._last_position = this.position.clone();
         }
-
     };
 
     return Block;

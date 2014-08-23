@@ -14,6 +14,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
 
         this.type = "G";
         this.sprite = new PIXI.Sprite(assets.guy);
+        this.sprite.z = 1;
         this.position = this.sprite.position;
         this._last_position = this.position.clone();
         this.sprite.anchor.set(0, 0);
@@ -32,6 +33,8 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
         var wasleft  = this.d.x < 0,
         wasright = this.d.x > 0,
         falling  = this.falling;
+
+        dt /=100;
 
         this.dd.x = 0;
         this.dd.y = CONST.GRAVITY;
@@ -74,6 +77,23 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
         celldown  = cells[tx + (1+ty) * CONST.WIDTH],
         celldiag  = cells[(1+tx) + (1+ty) * CONST.WIDTH];
 
+        if (cell) {
+            if (cell.activate) cell.activate();
+            if (cell.inactive) cell = undefined;
+        }
+        if (celldown) {
+            if (celldown.activate) celldown.activate();
+            if (celldown.inactive) celldown = undefined;
+        }
+        if (cellright) {
+            if (cellright.activate) cellright.activate();
+            if (cellright.inactive) cellright = undefined;
+        }
+        if (celldiag) {
+            if (celldiag.activate) celldiag.activate();
+            if (celldiag.inactive) celldiag = undefined;
+        }
+
         if ((cell && cell.type === "die" && this.collide(cell)) ||
             (celldown && celldown.type === "die" && this.collide(celldown)) ||
             (celldiag && celldiag.type === "die" && this.collide(celldiag)) ||
@@ -82,6 +102,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
             document.dispatchEvent(new CustomEvent('guyDeath'));
             return;
         }
+
 
         if (this.d.y > 0) {
             if ((celldown && !cell && celldown.block) ||

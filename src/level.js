@@ -1,7 +1,9 @@
-define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src/guy", "src/jumpable", "src/block", "src/spikes", "src/replayGuy" ], function(PIXI, proton, Sound, assets, CONST, Guy, Jumpable, Block, Spikes, ReplayGuy) {
+define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src/guy", "src/jumpable", "src/block", "src/spikes", "src/replayGuy", "src/platform", "src/fallBlock" ], function(PIXI, proton, Sound, assets, CONST, Guy, Jumpable, Block, Spikes, ReplayGuy, Platform, FallBlock) {
     var Level = function() {
         this.guy = null;
         this.blocks = [];
+        this.platforms = [];
+        this.falls = [];
         this.lvl = {}; // Sey it manually
         this.tileset = [];
         this.spawn = [];
@@ -60,19 +62,44 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
 
     };
 
+
+    function depthCompare(a,b) {
+        a.z = a.z || 0;
+        b.z = b.z || 0;
+        if (a.z < b.z)
+            return -1;
+        if (a.z > b.z)
+            return 1;
+        return 0;
+    }
+
+    Level.prototype.sort = function() {
+        this.camera.children.sort(depthCompare);
+    };
+
     Level.prototype.setLevelData = function(width, height, lvl) {
         this.lvl.width = width;
         this.lvl.height = height;
         this.lvl.data = lvl.toUpperCase();
     };
 
+    Level.prototype.setPlatformData = function(data) {
+        this.platformData = data;
+        var i;
+        for (i = 0; i < this.platformData.length; i++) {
+            this.platformData[i].jumpable = this.platformData[i].jumpable || true;
+            this.platformData[i].speed = this.platformData[i].speed || 10;
+            this.platformData[i].timer = this.platformData[i].timer || 2000;
+        }
+    };
+
     Level.prototype.init = function() {
-        this.stage = PIXI.stage = new PIXI.Stage(0x66FF99);
+        this.stage = PIXI.stage = new PIXI.Stage(0x101010);
         this.camera = new PIXI.DisplayObjectContainer();
         this.stage.addChild(this.camera);
 
         // load Level
-        var x, y, block, ind, spikes;
+        var x, y, block, ind, spikes, pi = 0, pdata;
         for (y = 0; y < this.lvl.height; y++) {
             for (x = 0; x < this.lvl.width; x++) {
                 ind = x + y * this.lvl.width;
@@ -90,6 +117,17 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                 } else if (this.lvl.data[ind] === "T") {
                     block = new Jumpable(x * CONST.TILE, y * CONST.TILE);
                     block.jumpable = true;
+                    this.camera.addChild(block.sprite);
+                    this.tileset[ind] = block;
+                } else if (this.lvl.data[ind] === "-") {
+                    pdata = this.platformData[pi++];
+                    block = new Platform(x * CONST.TILE, y * CONST.TILE, pdata.jumpable);
+                    block.movement(pdata.from, pdata.to, pdata.speed, pdata.timer);
+                    this.camera.addChild(block.sprite);
+                    this.platforms.push(block);
+                } else if (this.lvl.data[ind] === "F") { // Block
+                    block = new FallBlock(x * CONST.TILE, y * CONST.TILE);
+                    this.falls.push(block);
                     this.camera.addChild(block.sprite);
                     this.tileset[ind] = block;
                 }
@@ -121,7 +159,12 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         for (i = 0; i < this.replays.length; i++) {
             this.replays[i].update(delta, this.history[i]);
         }
-        delta /= 100;
+        for (i = 0; i < this.platforms.length; i++) {
+            this.platforms[i].update(delta);
+        }
+        for (i = 0; i < this.falls.length; i++) {
+            this.falls[i].update(delta);
+        }
         this.guy.update(delta, this.tileset, this.dirs);
         this.camera.pivot = this.guy.position.clone();
     };

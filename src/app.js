@@ -23,7 +23,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 var renderer = new Proton.Renderer('other', proton);
                 pixiRender = PIXI.autoDetectRenderer(CONST.SCREEN.x, CONST.SCREEN.y);
                 document.getElementById('container').appendChild(pixiRender.view);
-                stage = new PIXI.Stage(0x66FF99);
+                stage = new PIXI.Stage(0x101010);
                 PIXI.stage = stage;
                 window.PIXI = PIXI; // XXX Testing
                 window.stage = stage;
@@ -72,6 +72,9 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                     lvl.update(Math.min(delta, step));
                     delta -= step;
                 }
+                if (stage.logo) {
+                    stage.logo.move(delta);
+                }
                 pixiRender.render(PIXI.stage);
                 stats.end();
                 lastTime = now;
@@ -86,17 +89,35 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 lvl = new Level();
                 lvl.setLevelData(32, 10,
                                  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
-                                     "B        1               5   4 B"+
-                                     "B   0    TT             BB     B"+
-                                     "B                              B"+
-                                     "B             2                B"+
-                                     "B             BBBB             B"+
-                                     "B BBB                          B"+
-                                     "B                        BBBBBBB"+
-                                     "B                    BBBSBBSSBBB"+
-                                     "BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
+                                 "B        1               5   4 B"+
+                                 "B   0    TT             BB     B"+
+                                 "B   -                          B"+
+                                 "B             2          FFFFFFB"+
+                                 "B             BBBB             B"+
+                                 "B BBB                          B"+
+                                 "B                        BBBBBBB"+
+                                 "B                    BBBSBBSSBBB"+
+                                 "BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
                                 );
+                lvl.setPlatformData([
+                    {
+                    from: new PIXI.Point(32, 128),
+                    to: new PIXI.Point(128, 128),
+                    jumpable: true,
+                    speed: 10,
+                    timer: 2000,
+                    }
+                ]);
                 lvl.init();
+                var bitmapFontText = new PIXI.BitmapText("bitmap fonts are\n now supported!", {font: "35px Megafont", align: "left"});
+                bitmapFontText.position.x = 0;
+                bitmapFontText.position.y = 20;
+                bitmapFontText.z = 10;
+
+                stage.addChild(bitmapFontText);
+
+                lvl.sort();
+
             });
             tick();
         }
