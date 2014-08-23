@@ -1,70 +1,39 @@
-define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets"], function(PIXI, stats, Proton, Sound, assets) {
+define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src/level", "src/const"],
+       function(PIXI, stats, proton, Sound, assets, Level, CONST) {
     return {
         start: function() {
             var canvas;
             var context;
-            var proton;
             var emitter;
-            var pixiStage;
+            var stage;
             var pixiRender;
+            var lvl;
+            var step = 15;
+            var lastTime = Date.now(), delta = 0;
 
             var addStats = function() {
                 stats.setMode(2);
                 stats.domElement.style.position = 'absolute';
-                stats.domElement.style.left = '0px';
+                stats.domElement.style.left = '-100px';
                 stats.domElement.style.top = '0px';
                 document.getElementById('container').appendChild(stats.domElement);
             };
 
-            var loadData = function() {
-                Sound.registerSound({id:"hurt", src:"sound/hurt.ogg"});
-                Sound.registerSound("sound/hurt.ogg", "ay");
-                Sound.registerSound("sound/music.mp3", "music");
-
-                var handleFileLoad = function(event) {
-                    // A sound has been preloaded.
-                    console.log("Preloaded:", event.id, event.src);
-                };
-                Sound.addEventListener("fileload", handleFileLoad);
-            };
-
-            var createProton = function() {
-                var texture = new PIXI.Texture.fromImage("image/bunny.png");
-                proton = new Proton();
-                emitter = new Proton.BehaviourEmitter();
-                emitter.rate = new Proton.Rate(new Proton.Span(75, 110), new Proton.Span(.2, .5));
-                emitter.addInitialize(new Proton.Mass(1));
-                emitter.addInitialize(new Proton.ImageTarget(texture));
-                emitter.addInitialize(new Proton.Life(2, 3));
-                emitter.addInitialize(new Proton.Velocity(new Proton.Span(3, 9), new Proton.Span(0, 30, true), 'polar'));
-
-                emitter.addBehaviour(new Proton.Gravity(8));
-                emitter.addBehaviour(new Proton.Scale(new Proton.Span(1, 3), 0.3));
-                emitter.addBehaviour(new Proton.Alpha(1, 0.5));
-                emitter.addBehaviour(new Proton.Rotate(0, Proton.getSpan(-8, 9), 'add'));
-                emitter.p.x = 1003 / 2;
-                emitter.p.y = 100;
-                emitter.emit();
-                proton.addEmitter(emitter);
-
-                emitter.addSelfBehaviour(new Proton.Gravity(5));
-                emitter.addSelfBehaviour(new Proton.RandomDrift(30, 30, .1));
-                emitter.addSelfBehaviour(new Proton.CrossZone(new Proton.RectZone(50, 0, 953, 610), 'bound'));
-            };
-
             var createRender = function() {
                 var renderer = new Proton.Renderer('other', proton);
-                pixiRender = PIXI.autoDetectRenderer(1003, 610);
+                pixiRender = PIXI.autoDetectRenderer(CONST.SCREEN.x, CONST.SCREEN.y);
                 document.getElementById('container').appendChild(pixiRender.view);
-                pixiStage = new PIXI.Stage(0x66FF99);
-                window.stage = pixiStage;
+                stage = new PIXI.Stage(0x66FF99);
+                PIXI.stage = stage;
+                window.PIXI = PIXI; // XXX Testing
+                window.stage = stage;
                 renderer.onProtonUpdate = function() {
 
                 };
                 renderer.onParticleCreated = function(particle) {
                     var particleSprite = new PIXI.Sprite(particle.target);
                     particle.sprite = particleSprite;
-                    pixiStage.addChild(particle.sprite);
+                    PIXI.stage.addChild(particle.sprite);
                 };
 
                 renderer.onParticleUpdate = function(particle) {
@@ -72,27 +41,15 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets"], fun
                 };
 
                 renderer.onParticleDead = function(particle) {
-                    pixiStage.removeChild(particle.sprite);
+                    PIXI.stage.removeChild(particle.sprite);
                 };
                 renderer.start();
-
-                // create a new Sprite using the texture
-                var bunny = new PIXI.Sprite(new PIXI.Texture.fromImage("image/bunny.png"));
-
-                // center the sprites anchor point
-                bunny.anchor.x = 0.5;
-                bunny.anchor.y = 0.5;
-
-                // move the sprite t the center of the screen
-                bunny.position.x = 200;
-                bunny.position.y = 150;
-
-                pixiStage.addChild(bunny);
-                window.bunny = bunny;
-
             };
 
-            function transformSprite(particleSprite, particle) {
+            var updateProtonBindings = function() {
+            };
+
+            var transformSprite = function(particleSprite, particle) {
                 particleSprite.position.x = particle.p.x;
                 particleSprite.position.y = particle.p.y;
                 particleSprite.scale.x = particle.scale;
@@ -103,23 +60,43 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets"], fun
                 particleSprite.rotation = particle.rotation * Math.PI / 180;
             };
 
-            function tick() {
+            var tick = function() {
+                var now = Date.now();
+                delta = now - lastTime;
+                window.delta = delta;
                 requestAnimationFrame(tick);
 
                 stats.begin();
                 proton.update();
-                pixiRender.render(pixiStage);
+                while (delta > step) {
+                    lvl.update(Math.min(delta, step));
+                    delta -= step;
+                }
+                pixiRender.render(PIXI.stage);
                 stats.end();
+                lastTime = now;
             };
 
             // clean container
             document.getElementById('container').textContent = "";
-            loadData();
             addStats();
-            createProton();
             createRender();
             // TODO add tick here? do the work on asset load + function
-            assets.load(pixiStage, pixiRender);
+            assets.load(PIXI.stage, pixiRender);
+            lvl = new Level();
+            lvl.setLevelData(32, 10,
+                             "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
+                             "B        1               5   4 B"+
+                             "B   0    TT             BB     B"+
+                             "B                              B"+
+                             "B             2                B"+
+                             "B             BBBB             B"+
+                             "B BBB                          B"+
+                             "B                        BBBBBBB"+
+                             "B                    BBBSBBSSBBB"+
+                             "BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
+                            );
+            lvl.init();
             tick();
         }
     };

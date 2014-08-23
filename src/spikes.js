@@ -1,0 +1,25 @@
+define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], function(PIXI, proton, Sound, assets, CONST) {
+    var Spikes = function(x, y) {
+        if (x && typeof x === "object") {
+            y = x.y;
+            x = x.x;
+        } else {
+            x = x || 0;
+            y = y || 0;
+        }
+
+        this.type = "die";
+        this.sprite = new PIXI.Sprite(assets.spikes);
+        this.position = this.sprite.position;
+        this._last_position = this.position.clone();
+        this.sprite.anchor.set(0, 0);
+        this.sprite.position.set(x + this.sprite.anchor.x * this.sprite.width,
+                                 y + this.sprite.anchor.y * this.sprite.height);
+       var red = 5;
+       this.rect = new PIXI.Rectangle(x - this.sprite.width * this.sprite.anchor.x,
+                                      y - this.sprite.height * this.sprite.anchor.y + red,
+                                      this.sprite.width, this.sprite.height - red);
+    };
+
+    return Spikes;
+});
