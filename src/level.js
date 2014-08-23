@@ -95,7 +95,10 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                 }
             }
         }
-        this.guy = new Guy(this.spawn[this.dimension]);
+        var sp = this.spawn[this.dimension], i = 0;
+        while (!sp && i < 200) sp = this.spawn[this.dimension+(i++)];
+        this.spawn[0] = sp; // allow single level
+        this.guy = new Guy(sp);
         this.camera.addChild(this.guy.sprite);
         window.camera = this.camera;
         CONST.WIDTH = this.lvl.width;

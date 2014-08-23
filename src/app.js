@@ -68,7 +68,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
 
                 stats.begin();
                 proton.update();
-                while (delta > step) {
+                while (lvl && delta > step) {
                     lvl.update(Math.min(delta, step));
                     delta -= step;
                 }
@@ -82,21 +82,22 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
             addStats();
             createRender();
             // TODO add tick here? do the work on asset load + function
-            assets.load(PIXI.stage, pixiRender);
-            lvl = new Level();
-            lvl.setLevelData(32, 10,
-                             "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
-                             "B        1               5   4 B"+
-                             "B   0    TT             BB     B"+
-                             "B                              B"+
-                             "B             2                B"+
-                             "B             BBBB             B"+
-                             "B BBB                          B"+
-                             "B                        BBBBBBB"+
-                             "B                    BBBSBBSSBBB"+
-                             "BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
-                            );
-            lvl.init();
+            assets.load(PIXI.stage, pixiRender, function() {
+                lvl = new Level();
+                lvl.setLevelData(32, 10,
+                                 "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
+                                     "B        1               5   4 B"+
+                                     "B   0    TT             BB     B"+
+                                     "B                              B"+
+                                     "B             2                B"+
+                                     "B             BBBB             B"+
+                                     "B BBB                          B"+
+                                     "B                        BBBBBBB"+
+                                     "B                    BBBSBBSSBBB"+
+                                     "BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
+                                );
+                lvl.init();
+            });
             tick();
         }
     };

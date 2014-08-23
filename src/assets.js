@@ -1,15 +1,19 @@
 define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
-    var assets = {};
-    var loaded = 0, toLoad;
+    var assets = {
+        loaded: 0,
+        toLoad: 0,
+    };
 
     assets.sounds = ["sound/hurt.ogg"];
     assets.soundsName = ["hurt"];
     assets.textures = ["image/guy.png", "image/block.png", "image/spikes.png", "image/jumpable.png"];
     assets.texturesName = ["guy", "block", "spikes", "jumpable"];
 
-    toLoad = assets.sounds.length + assets.textures.length;
+    assets.toLoad = assets.sounds.length + assets.textures.length;
 
-    assets.load = function(stage, render) {
+    assets.load = function(stage, render, fun) {
+        var loader = new PIXI.AssetLoader(this.textures);
+        var that = this;
         var backRect = new PIXI.Graphics(),
         w = 320, h = 80;
         backRect.lineStyle(2, 0x0c0c0c, 1);
@@ -18,19 +22,34 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
             w, h);
         stage.addChild(backRect);
 
-        var i;
-        for (i = 0; i < this.textures.length; i++) {
-            this[this.texturesName[i]] = new PIXI.Texture.fromImage(this.textures[i]);
-        }
-        for (i = 0; i < this.sounds.length; i++) {
-            Sound.registerSound(this.sounds[i], this.soundsName[i]);
-        }
+        loader.addEventListener('onProgress', function() {
+            that.loaded++;
+            if (that.loaded >= that.toLoad)
+                fun();
+        });
+
+        loader.addEventListener('onComplete', function() {
+            var i;
+            for (i = 0; i < that.textures.length; i++) {
+                that[that.texturesName[i]] = new PIXI.Texture.fromImage(that.textures[i]);
+            }
+        });
+
+        loader.load();
+
         var handleFileLoad = function(event) {
             // A sound has been preloaded.
             console.log("Preloaded:", event.id, event.src);
+            that.loaded++;
+            if (that.loaded >= that.toLoad)
+                fun();
         };
 
         Sound.addEventListener("fileload", handleFileLoad);
+
+        for (i = 0; i < that.sounds.length; i++) {
+            Sound.registerSound(that.sounds[i], that.soundsName[i]);
+        }
     };
 
     return assets;
