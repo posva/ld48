@@ -4,10 +4,19 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
         toLoad: 0,
     };
 
-    assets.sounds = ["sound/hurt.ogg", "sound/platform.ogg"];
-    assets.soundsName = ["hurt", "platform"];
-    assets.textures = ["image/guy.png", "image/block.png", "image/spikes.png", "image/jumpable.png"];
-    assets.texturesName = ["guy", "block", "spikes", "jumpable"];
+    assets.sounds = ["sound/hurt.ogg", "sound/platform.ogg", "sound/hit.ogg", "sound/jump.ogg", "sound/explosion.ogg"];
+    assets.soundsName = ["hurt", "platform", "hit", "jump", "explosion"];
+    assets.textures = ["image/guy.png", "image/block.png", "image/spikes.png", "image/jumpable.png", "image/particle.png", "image/fall.png", "image/fallOn.png",
+        "image/blood_1.png", "image/blood_2.png", "image/blood_3.png",
+        "image/bloodSplash_1.png", "image/bloodSplash_2.png", "image/bloodSplash_3.png",
+        "image/explosion_1.png", "image/explosion_2.png", "image/explosion_3.png", "image/explosion_4.png", "image/explosion_5.png", "image/explosion_6.png",
+        "image/fallExplo_1.png", "image/fallExplo_2.png", "image/fallExplo_3.png", "image/fallExplo_4.png", "image/fallExplo_5.png"
+    ];
+    assets.texturesName = ["guy", "block", "spikes", "jumpable", "particle", "fall", "fallOn",
+        "blood", "blood", "blood", "bloodSplash", "bloodSplash", "bloodSplash",
+        "explosion", "explosion", "explosion", "explosion", "explosion", "explosion",
+        "fallExplo", "fallExplo", "fallExplo", "fallExplo", "fallExplo"
+    ];
     assets.fonts = ["data/font.fnt"];
 
     assets.toLoad = assets.sounds.length + assets.textures.length + 1 + assets.fonts.length;
@@ -67,9 +76,19 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
         });
 
         loader.addEventListener('onComplete', function() {
-            var i;
+            var i, tmp;
+
             for (i = 0; i < that.textures.length; i++) {
-                that[that.texturesName[i]] = new PIXI.Texture.fromImage(that.textures[i]);
+                if (!that[that.texturesName[i]]) {
+                    that[that.texturesName[i]] = new PIXI.Texture.fromImage(that.textures[i]);
+                } else { // array
+                    tmp = that[that.texturesName[i]];
+                    if (!(tmp instanceof Array)) {
+                        that[that.texturesName[i]] = [];
+                        that[that.texturesName[i]].push(tmp);
+                    }
+                    that[that.texturesName[i]].push(new PIXI.Texture.fromImage(that.textures[i]));
+                }
             }
             updateProgress();
         });
@@ -101,6 +120,7 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
 
         Sound.addEventListener("fileload", handleFileLoad);
 
+        var i;
         for (i = 0; i < that.sounds.length; i++) {
             Sound.registerSound(that.sounds[i], that.soundsName[i]);
         }

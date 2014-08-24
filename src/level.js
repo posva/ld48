@@ -1,4 +1,4 @@
-define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src/guy", "src/jumpable", "src/block", "src/spikes", "src/replayGuy", "src/platform", "src/fallBlock" ], function(PIXI, proton, Sound, assets, CONST, Guy, Jumpable, Block, Spikes, ReplayGuy, Platform, FallBlock) {
+define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src/guy", "src/jumpable", "src/block", "src/spikes", "src/replayGuy", "src/platform", "src/fallBlock", "src/wobble" ], function(PIXI, proton, Sound, assets, CONST, Guy, Jumpable, Block, Spikes, ReplayGuy, Platform, FallBlock, Wobble) {
     var Level = function() {
         this.guy = null;
         this.blocks = [];
@@ -18,6 +18,12 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.timer = 0;
         this.currentTimer = 0;
         this.maxTimer = 60 * 1000; // 1 min max recording
+        this.restart = 0;
+        this.wobbleCamX = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
+        this.wobbleCamY = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
+        // XXX testing
+        window.wob1 = this.wobbleCamX;
+        window.wob2 = this.wobbleCamY;
 
         document.addEventListener('keydown', function(ev) { return onkey(ev, ev.keyCode, true);  }, false);
         document.addEventListener('keyup',   function(ev) { return onkey(ev, ev.keyCode, false); }, false);
@@ -28,13 +34,24 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                 case CONST.KEY.LEFT:  that.dirs.left  = down; return false;
                 case CONST.KEY.RIGHT: that.dirs.right = down; return false;
                 case CONST.KEY.UP: that.dirs.jump  = down; return false;
+                case CONST.KEY.R:
+                    if (that.restart && !down) {
+                        that.restart = 0;
+                        that.clean();
+                        that.init();
+                    } else {
+                        that.restart = down;
+                    }
+                    return false;
             }
         }
 
         var addDimension = function() {
             that.dimension++;
             if (that.dimension >= that.spawn.length) {
-                // trigger death
+                that.clean();
+                that.init();
+                // TODO some animation pls
                 return 0;
             }
             var sp = that.spawn[that.dimension-1];
@@ -56,9 +73,37 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
             that.guy.position.x = sp.x;
             that.guy.position.y = sp.y;
             that.history[that.dimension] = [];
+            that.sort();
         };
 
         document.addEventListener('guyDeath', addDimension);
+
+        this.ambientEmiter = new Proton.Emitter();
+        this.ambientEmiter.damping = 0.0075;
+        this.ambientEmiter.addInitialize(new Proton.ImageTarget(assets.particle));
+        this.ambientEmiter.addInitialize(new Proton.Mass(1), new Proton.Radius(Proton.getSpan(5, 10)));
+
+        this.repulsionBehaviour = new Proton.Repulsion({x: 0, y: 0}, 0, 0);
+        this.ambientEmiter.addBehaviour(new Proton.Scale(Proton.getSpan(.1, .6)));
+        this.ambientEmiter.addBehaviour(new Proton.Alpha(.5));
+        this.ambientEmiter.addBehaviour(new Proton.RandomDrift(10, 10, .2));
+        this.ambientEmiter.addBehaviour(new Proton.Color('random'));
+        this.ambientEmiter.addBehaviour({
+            initialize : function(particle) {
+                particle.tha = Math.random() * Math.PI;
+                particle.thaSpeed = 0.015 * Math.random() + 0.005;
+            },
+
+            applyBehaviour : function(particle) {
+                particle.tha += particle.thaSpeed;
+                particle.alpha = Math.abs(Math.cos(particle.tha));
+            }
+        });
+        proton.addEmitter(this.ambientEmiter);
+
+        document.addEventListener('replayEnd', function(ev) {
+            that.addBlock(ev.detail.position, ev.detail.block);
+        });
 
     };
 
@@ -73,6 +118,11 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         return 0;
     }
 
+    Level.prototype.addBlock = function(position, block) {
+        this.tileset[Math.floor(position.x / CONST.TILE) + Math.floor(position.y / CONST.TILE) * CONST.TILE] = block;
+        block.block = true;
+    };
+
     Level.prototype.sort = function() {
         this.camera.children.sort(depthCompare);
     };
@@ -81,6 +131,13 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.lvl.width = width;
         this.lvl.height = height;
         this.lvl.data = lvl.toUpperCase();
+        var rect = new Proton.RectZone(0, 0, width * CONST.TILE, height * CONST.TILE);
+        this.ambientEmiter.addInitialize(new Proton.Position(rect));
+        this.ambientEmiter.p.x = 0;
+        this.ambientEmiter.p.y = 0;
+        this.crossZoneBehaviour = new Proton.CrossZone(rect, 'cross');
+        this.ambientEmiter.rate = new Proton.Rate(width * height);
+        this.ambientEmiter.addBehaviour(this.repulsionBehaviour, this.crossZoneBehaviour);
     };
 
     Level.prototype.setPlatformData = function(data) {
@@ -93,11 +150,33 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         }
     };
 
-    Level.prototype.init = function() {
-        this.stage = PIXI.stage = new PIXI.Stage(0x101010);
-        this.camera = new PIXI.DisplayObjectContainer();
-        this.stage.addChild(this.camera);
+    Level.prototype.clean = function() {
+        this.tileset.splice(0);
+        this.replays.splice(0);
+        this.platforms.splice(0);
+        this.falls.splice(0);
+        this.spawn.splice(0);
+        if (this.guy) {
+            this.guy.sprite.removeStageReference();
+            delete this.guy;
+        }
+        this.camera.removeStageReference();
+        delete this.camera;
+        delete this.stage;
+        this.dimension = 0;
+    };
 
+    Level.prototype.init = function() {
+        if (!this.stage) {
+            this.stage = PIXI.stage = new PIXI.Stage(0x101010);
+        }
+        if (!this.camera) {
+            this.camera = PIXI.camera = new PIXI.DisplayObjectContainer();
+            this.stage.addChild(this.camera);
+
+            this.ambientEmiter.emit('once');
+        }
+        
         // load Level
         var x, y, block, ind, spikes, pi = 0, pdata;
         for (y = 0; y < this.lvl.height; y++) {
@@ -133,8 +212,8 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                 }
             }
         }
-        var sp = this.spawn[this.dimension], i = 0;
-        while (!sp && i < 200) sp = this.spawn[this.dimension+(i++)];
+        var sp = this.spawn[0], i = 0;
+        while (!sp && i < 200) sp = this.spawn[0+(i++)];
         this.spawn[0] = sp; // allow single level
         this.guy = new Guy(sp);
         this.camera.addChild(this.guy.sprite);
@@ -142,8 +221,11 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         CONST.WIDTH = this.lvl.width;
 
         this.camera.position.set(CONST.SCREEN.x/2, CONST.SCREEN.y/2);
-        this.history[this.dimension] = [];
-        window.his = this.history[this.dimension];
+        this.history = [];
+        this.history[0] = [];
+        this.timer = 0;
+        this.currentTimer = 0;
+        window.his = this.history[0];
     };
 
     Level.prototype.update = function(delta) {
@@ -166,7 +248,13 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
             this.falls[i].update(delta);
         }
         this.guy.update(delta, this.tileset, this.dirs);
-        this.camera.pivot = this.guy.position.clone();
+        this.repulsionBehaviour.reset(this.guy.position, 5, 100);
+        this.wobbleCamX.update(delta);
+        this.wobbleCamX.valTo = this.guy.position.x;
+        this.wobbleCamY.valTo = this.guy.position.y;
+        this.wobbleCamY.update(delta);
+        this.camera.pivot.x = this.wobbleCamX.val;
+        this.camera.pivot.y = this.wobbleCamY.val;
     };
 
     return Level;

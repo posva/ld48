@@ -10,10 +10,10 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets"], function(PIXI, p
 
         this.type = "block";
         this.currentTimer = -1;
-        this.timer = 3500;
+        this.timer = 2500;
         this.block = true;
         this.inactive = false;
-        this.sprite = new PIXI.Sprite(assets.block);
+        this.sprite = new PIXI.Sprite(assets.fall);
         this.position = this.sprite.position;
         this._last_position = this.position.clone();
         this.sprite.anchor.set(0, 0);
@@ -25,7 +25,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets"], function(PIXI, p
 
     FallBlock.prototype.activate = function() {
         if (this.currentTimer <= 0)
-            this.currentTimer = 2000;
+            this.currentTimer = 750;
         //start soem aniamtion
     };
 

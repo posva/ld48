@@ -33,7 +33,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 renderer.onParticleCreated = function(particle) {
                     var particleSprite = new PIXI.Sprite(particle.target);
                     particle.sprite = particleSprite;
-                    PIXI.stage.addChild(particle.sprite);
+                    PIXI.camera.addChild(particle.sprite);
                 };
 
                 renderer.onParticleUpdate = function(particle) {
@@ -41,7 +41,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 };
 
                 renderer.onParticleDead = function(particle) {
-                    PIXI.stage.removeChild(particle.sprite);
+                    PIXI.camera.removeChild(particle.sprite);
                 };
                 renderer.start();
             };
@@ -56,6 +56,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 particleSprite.scale.y = particle.scale;
                 particleSprite.anchor.x = 0.5;
                 particleSprite.anchor.y = 0.5;
+                particleSprite.z = 5;
                 particleSprite.alpha = particle.alpha;
                 particleSprite.rotation = particle.rotation * Math.PI / 180;
             };
@@ -87,11 +88,45 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
             // TODO add tick here? do the work on asset load + function
             assets.load(PIXI.stage, pixiRender, function() {
                 lvl = new Level();
-                lvl.setLevelData(32, 10,
+                //lvl.setLevelData(32, 10,
+                                 //"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
+                                 //"B        1               5   4 B"+
+                                 //"B   0    TT             BB     B"+
+                                 //"B   -                          B"+
+                                 //"B             2          FFFFFFB"+
+                                 //"B             BBBB             B"+
+                                 //"B BBB                          B"+
+                                 //"B                        BBBBBBB"+
+                                 //"B                    BBBSBBSSBBB"+
+                                 //"BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
+                                //);
+                lvl.setLevelData(32, 32,
                                  "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
                                  "B        1               5   4 B"+
                                  "B   0    TT             BB     B"+
-                                 "B   -                          B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT   FFF       BB     B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B               FFFF           B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT             BB     B"+
+                                 "B                              B"+
+                                 "B        TT      FSFF   BB     B"+
+                                 "B                              B"+
+                                 "B                              B"+
+                                 "B                              B"+
                                  "B             2          FFFFFFB"+
                                  "B             BBBB             B"+
                                  "B BBB                          B"+

@@ -1,7 +1,14 @@
 define([], function() {
     var CONST = {
         TILE: 32,                 // the size of each tile (in game pixels)
-        KEY: { SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 },
+        KEY: {
+            SPACE: 32,
+            LEFT: 37,
+            UP: 38,
+            RIGHT: 39,
+            DOWN: 40,
+            R: 82,
+        },
         SCREEN: { x: 1003, y: 610 },
         TIMER_INTERVAL: 10,
     };
@@ -13,5 +20,9 @@ define([], function() {
     CONST.ACCEL    = CONST.MAXDX * 2;          // horizontal acceleration -  take 1/2 second to reach maxdx
     CONST.FRICTION = CONST.MAXDX * 6;          // horizontal friction     -  take 1/6 second to stop from maxdx
     CONST.JUMP     = 1500;       // (a large) instantaneous jump impulse
+    
+    CONST.CAMFORCE = 0.75;
+    CONST.CAMFRICTION = 0.9;
+
     return CONST;
 });

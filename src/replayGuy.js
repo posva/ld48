@@ -14,7 +14,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
         this.type = "replay";
         this.sprite = new PIXI.Sprite(assets.guy);
         this.position = this.sprite.position;
-        this.sprite.z = 1;
+        this.sprite.z = 0;
         this._last_position = this.position.clone();
         this.sprite.anchor.set(0, 0);
         this.sprite.position.set(x + this.sprite.anchor.x * this.sprite.width,
@@ -39,6 +39,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
                     replay.splice(0);
                     this.position.x = Math.round(this.position.x / CONST.TILE) * CONST.TILE;
                     this.position.y = Math.round(this.position.y / CONST.TILE) * CONST.TILE;
+                    document.dispatchEvent(new CustomEvent('replayEnd', {detail: {position: this.position.clone(), block: this}}));
                     return;
                 }
             }
