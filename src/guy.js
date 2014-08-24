@@ -95,13 +95,13 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
             if (celldiag.inactive) celldiag = undefined;
         }
 
-        if ((cell && cell.type === "die" && this.collide(cell)) ||
+        if (this.position.y > CONST.TILE * CONST.HEIGHT || (cell && cell.type === "die" && this.collide(cell)) ||
             (celldown && celldown.type === "die" && this.collide(celldown)) ||
             (celldiag && celldiag.type === "die" && this.collide(celldiag)) ||
             (cellright && cellright.type === "die" && this.collide(cellright))) {
             Sound.play("hurt");
             document.dispatchEvent(new CustomEvent('guyDeath'));
-            return;
+            return true;
         }
 
 

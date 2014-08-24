@@ -21,62 +21,9 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.restart = 0;
         this.wobbleCamX = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
         this.wobbleCamY = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
-        // XXX testing
-        window.wob1 = this.wobbleCamX;
-        window.wob2 = this.wobbleCamY;
+        this.wobbleCamRot = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
 
-        document.addEventListener('keydown', function(ev) { return onkey(ev, ev.keyCode, true);  }, false);
-        document.addEventListener('keyup',   function(ev) { return onkey(ev, ev.keyCode, false); }, false);
 
-        var that = this;
-        function onkey(ev, key, down) {
-            switch(key) {
-                case CONST.KEY.LEFT:  that.dirs.left  = down; return false;
-                case CONST.KEY.RIGHT: that.dirs.right = down; return false;
-                case CONST.KEY.UP: that.dirs.jump  = down; return false;
-                case CONST.KEY.R:
-                    if (that.restart && !down) {
-                        that.restart = 0;
-                        that.clean();
-                        that.init();
-                    } else {
-                        that.restart = down;
-                    }
-                    return false;
-            }
-        }
-
-        var addDimension = function() {
-            that.dimension++;
-            if (that.dimension >= that.spawn.length) {
-                that.clean();
-                that.init();
-                // TODO some animation pls
-                return 0;
-            }
-            var sp = that.spawn[that.dimension-1];
-            var i = 2;
-            while (!sp) {
-                sp = that.spawn[that.dimension-(i++)];
-            }
-            var r = new ReplayGuy(sp);
-            that.camera.addChild(r.sprite);
-            that.replays.push(r);
-            that.timer = that.currentTimer = 0;
-
-            //replace guy
-            i = 0;
-            sp = that.spawn[that.dimension];
-            while (!sp) {
-                sp = that.spawn[that.dimension-(i++)];
-            }
-            that.guy.position.x = sp.x;
-            that.guy.position.y = sp.y;
-            that.history[that.dimension] = [];
-            that.sort();
-        };
-
-        document.addEventListener('guyDeath', addDimension);
 
         this.ambientEmiter = new Proton.Emitter();
         this.ambientEmiter.damping = 0.0075;
@@ -84,9 +31,9 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.ambientEmiter.addInitialize(new Proton.Mass(1), new Proton.Radius(Proton.getSpan(5, 10)));
 
         this.repulsionBehaviour = new Proton.Repulsion({x: 0, y: 0}, 0, 0);
-        this.ambientEmiter.addBehaviour(new Proton.Scale(Proton.getSpan(.1, .6)));
-        this.ambientEmiter.addBehaviour(new Proton.Alpha(.5));
-        this.ambientEmiter.addBehaviour(new Proton.RandomDrift(10, 10, .2));
+        this.ambientEmiter.addBehaviour(new Proton.Scale(Proton.getSpan(0.1, 0.6)));
+        this.ambientEmiter.addBehaviour(new Proton.Alpha(0.5));
+        this.ambientEmiter.addBehaviour(new Proton.RandomDrift(0, 10, 0.5));
         this.ambientEmiter.addBehaviour(new Proton.Color('random'));
         this.ambientEmiter.addBehaviour({
             initialize : function(particle) {
@@ -101,12 +48,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         });
         proton.addEmitter(this.ambientEmiter);
 
-        document.addEventListener('replayEnd', function(ev) {
-            that.addBlock(ev.detail.position, ev.detail.block);
-        });
-
     };
-
 
     function depthCompare(a,b) {
         a.z = a.z || 0;
@@ -122,6 +64,10 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.tileset[Math.floor(position.x / CONST.TILE) + Math.floor(position.y / CONST.TILE) * CONST.TILE] = block;
         block.block = true;
     };
+
+    Level.prototype.destroy = function() {
+        // TODO missing some shit
+    }
 
     Level.prototype.sort = function() {
         this.camera.children.sort(depthCompare);
@@ -164,6 +110,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         delete this.camera;
         delete this.stage;
         this.dimension = 0;
+        this.ambientEmiter.particles.splice(0);
     };
 
     Level.prototype.init = function() {
@@ -208,17 +155,20 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                     block = new FallBlock(x * CONST.TILE, y * CONST.TILE);
                     this.falls.push(block);
                     this.camera.addChild(block.sprite);
+                    this.camera.addChild(block.animation);
                     this.tileset[ind] = block;
                 }
             }
         }
         var sp = this.spawn[0], i = 0;
         while (!sp && i < 200) sp = this.spawn[0+(i++)];
-        this.spawn[0] = sp; // allow single level
+        this.spawn[0] = sp; // allow single spawn
         this.guy = new Guy(sp);
+        console.log(this.spawn);
         this.camera.addChild(this.guy.sprite);
-        window.camera = this.camera;
+        window.camera = this.camera; // XXX test
         CONST.WIDTH = this.lvl.width;
+        CONST.HEIGHT = this.lvl.height;
 
         this.camera.position.set(CONST.SCREEN.x/2, CONST.SCREEN.y/2);
         this.history = [];
@@ -249,12 +199,16 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         }
         this.guy.update(delta, this.tileset, this.dirs);
         this.repulsionBehaviour.reset(this.guy.position, 5, 100);
+        this.wobbleCamRot.val = this.camera.rotation;
         this.wobbleCamX.update(delta);
+        this.wobbleCamY.update(delta);
+        this.wobbleCamRot.update(delta);
         this.wobbleCamX.valTo = this.guy.position.x;
         this.wobbleCamY.valTo = this.guy.position.y;
-        this.wobbleCamY.update(delta);
         this.camera.pivot.x = this.wobbleCamX.val;
         this.camera.pivot.y = this.wobbleCamY.val;
+        this.wobbleCamRot.valTo = 0;
+        this.camera.rotation = this.wobbleCamRot.val;
     };
 
     return Level;

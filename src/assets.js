@@ -4,15 +4,15 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
         toLoad: 0,
     };
 
-    assets.sounds = ["sound/hurt.ogg", "sound/platform.ogg", "sound/hit.ogg", "sound/jump.ogg", "sound/explosion.ogg"];
-    assets.soundsName = ["hurt", "platform", "hit", "jump", "explosion"];
+    assets.sounds = ["sound/hurt.ogg", "sound/platform.ogg", "sound/hit.ogg", "sound/jump.ogg", "sound/explosion.ogg", "sound/bip.ogg"];
+    assets.soundsName = ["hurt", "platform", "hit", "jump", "explosion", "bip"];
     assets.textures = ["image/guy.png", "image/block.png", "image/spikes.png", "image/jumpable.png", "image/particle.png", "image/fall.png", "image/fallOn.png",
         "image/blood_1.png", "image/blood_2.png", "image/blood_3.png",
         "image/bloodSplash_1.png", "image/bloodSplash_2.png", "image/bloodSplash_3.png",
         "image/explosion_1.png", "image/explosion_2.png", "image/explosion_3.png", "image/explosion_4.png", "image/explosion_5.png", "image/explosion_6.png",
         "image/fallExplo_1.png", "image/fallExplo_2.png", "image/fallExplo_3.png", "image/fallExplo_4.png", "image/fallExplo_5.png"
     ];
-    assets.texturesName = ["guy", "block", "spikes", "jumpable", "particle", "fall", "fallOn",
+    assets.texturesName = ["guy", "block", "spikes", "jumpable", "particle", "fall", "fall",
         "blood", "blood", "blood", "bloodSplash", "bloodSplash", "bloodSplash",
         "explosion", "explosion", "explosion", "explosion", "explosion", "explosion",
         "fallExplo", "fallExplo", "fallExplo", "fallExplo", "fallExplo"
