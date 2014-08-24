@@ -440,7 +440,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
             height: 12,
             lvl: "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
                  "B   AAA          B                 F   FB"+
-                 "B 1              0                 F   ZB"+
+                 "B 1                                F   ZB"+
                  "BSF     BSSSSSSSBB          F    S Z   ZB"+
                  "B  B   ZBFFFFFFFBX          F   ZX Z   ZB"+
                  "B  B   ZBFFFFFFFBX ZB       F   ZX Z   ZB"+
