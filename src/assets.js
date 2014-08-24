@@ -4,18 +4,23 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
         toLoad: 0,
     };
 
-    assets.sounds = ["sound/hurt.ogg", "sound/platform.ogg", "sound/hit.ogg", "sound/jump.ogg", "sound/explosion.ogg", "sound/bip.ogg"];
-    assets.soundsName = ["hurt", "platform", "hit", "jump", "explosion", "bip"];
-    assets.textures = ["image/guy.png", "image/block.png", "image/spikes.png", "image/jumpable.png", "image/particle.png", "image/fall.png", "image/fallOn.png",
+    assets.sounds = ["sound/hurt.ogg", "sound/platform.ogg", "sound/hit.ogg", "sound/jump.ogg", "sound/explosion.ogg", "sound/bip.ogg", "sound/endlevel.ogg", "sound/music.ogg"];
+    assets.soundsName = ["hurt", "platform", "hit", "jump", "explosion", "bip", "endlevel", "music"];
+    assets.textures = ["image/guy.png", "image/block.png", "image/spikesU.png",  "image/spikesR.png", "image/spikesD.png", "image/spikesL.png",
+        "image/jumpable.png", "image/particle.png", "image/fall.png", "image/fallOn.png",
         "image/blood_1.png", "image/blood_2.png", "image/blood_3.png",
         "image/bloodSplash_1.png", "image/bloodSplash_2.png", "image/bloodSplash_3.png",
         "image/explosion_1.png", "image/explosion_2.png", "image/explosion_3.png", "image/explosion_4.png", "image/explosion_5.png", "image/explosion_6.png",
-        "image/fallExplo_1.png", "image/fallExplo_2.png", "image/fallExplo_3.png", "image/fallExplo_4.png", "image/fallExplo_5.png"
+        "image/fallExplo_1.png", "image/fallExplo_2.png", "image/fallExplo_3.png", "image/fallExplo_4.png", "image/fallExplo_5.png",
+        "image/guy_walk_1.png", "image/guy_walk_2.png", "image/guy_walk_3.png", "image/guy_walk_4.png", "image/guy_walk_5.png", "image/guy_walk_6.png", "image/guy_walk_7.png", "image/guy_walk_8.png",
+        "image/circle.png"
     ];
-    assets.texturesName = ["guy", "block", "spikes", "jumpable", "particle", "fall", "fall",
+    assets.texturesName = ["guy", "block", "spikes", "spikes", "spikes", "spikes", "jumpable", "particle", "fall", "fall",
         "blood", "blood", "blood", "bloodSplash", "bloodSplash", "bloodSplash",
         "explosion", "explosion", "explosion", "explosion", "explosion", "explosion",
-        "fallExplo", "fallExplo", "fallExplo", "fallExplo", "fallExplo"
+        "fallExplo", "fallExplo", "fallExplo", "fallExplo", "fallExplo",
+        "guy_walk", "guy_walk", "guy_walk", "guy_walk", "guy_walk", "guy_walk", "guy_walk", "guy_walk",
+        "circle"
     ];
     assets.fonts = ["data/font.fnt"];
 
@@ -66,6 +71,7 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
             if (that.loaded >= that.toLoad) {
                 //setTimeout(function() {
                 delete stage.logo;
+                Sound.play("music", {loop: -1});
                 fun();
                 //}, 5000);
             }

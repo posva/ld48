@@ -13,7 +13,9 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
         this.jumps = 2;
 
         this.type = "G";
-        this.sprite = new PIXI.Sprite(assets.guy);
+        this.end = 0;
+        this.sprite = new PIXI.MovieClip(assets.guy_walk);
+        this.sprite.animationSpeed = 0.25;
         this.sprite.z = 1;
         this.position = this.sprite.position;
         this._last_position = this.position.clone();
@@ -30,11 +32,24 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
     }
 
     Guy.prototype.update = function(dt, cells, dirs) {
+        dt /=100;
+
+        if (this.end)  {
+            this.sprite.scale.x -= 0.1 * dt;
+            this.sprite.scale.y -= 0.1 * dt;
+            this.sprite.rotation += 0.005 * dt;
+            if (this.sprite.scale.x < 0) this.sprite.scale.x = 0;
+            if (this.sprite.scale.y < 0) this.sprite.scale.y = 0;
+            return;
+        }
+
         var wasleft  = this.d.x < 0,
         wasright = this.d.x > 0,
         falling  = this.falling;
-
-        dt /=100;
+        if (falling && (this.d.x !== 0 || this.d.y !== 0))
+            this.sprite.gotoAndStop(0);
+        else if (!this.sprite.playing)
+            this.sprite.gotoAndPlay(0);
 
         this.dd.x = 0;
         this.dd.y = CONST.GRAVITY;

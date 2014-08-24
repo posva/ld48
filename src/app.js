@@ -97,13 +97,6 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                     //timer: 2000,
                     //}
                 //]);
-                var bitmapFontText = new PIXI.BitmapText("Do something",
-                                                         {font: "35px Megafont", align: "left"});
-                //bitmapFontText.position.x = 0;
-                //bitmapFontText.position.y = 0;
-                bitmapFontText.z = 10;
-
-                PIXI.camera.addChild(bitmapFontText);
 
             });
             tick();
