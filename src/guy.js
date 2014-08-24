@@ -13,7 +13,9 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
         this.jumps = 2;
 
         this.type = "G";
-        this.sprite = new PIXI.Sprite(assets.guy);
+        this.end = 0;
+        this.sprite = new PIXI.MovieClip(assets.guy_walk);
+        this.sprite.animationSpeed = 0.25;
         this.sprite.z = 1;
         this.position = this.sprite.position;
         this._last_position = this.position.clone();
@@ -30,11 +32,24 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
     }
 
     Guy.prototype.update = function(dt, cells, dirs) {
+        dt /=100;
+
+        if (this.end)  {
+            this.sprite.scale.x -= 0.1 * dt;
+            this.sprite.scale.y -= 0.1 * dt;
+            this.sprite.rotation += 0.005 * dt;
+            if (this.sprite.scale.x < 0) this.sprite.scale.x = 0;
+            if (this.sprite.scale.y < 0) this.sprite.scale.y = 0;
+            return;
+        }
+
         var wasleft  = this.d.x < 0,
         wasright = this.d.x > 0,
         falling  = this.falling;
-
-        dt /=100;
+        if (falling && (this.d.x !== 0 || this.d.y !== 0))
+            this.sprite.gotoAndStop(0);
+        else if (!this.sprite.playing)
+            this.sprite.gotoAndPlay(0);
 
         this.dd.x = 0;
         this.dd.y = CONST.GRAVITY;
@@ -56,6 +71,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
             this.dd.y = this.dd.y - CONST.JUMP;     // apply an instantaneous (large) vertical impulse
             this.jumping = true;
             this.jumps--;
+            Sound.play("jump");
         }
 
         this.position.y  = Math.floor(this.position.y  + (dt * this.d.y));
@@ -94,13 +110,13 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
             if (celldiag.inactive) celldiag = undefined;
         }
 
-        if ((cell && cell.type === "die" && this.collide(cell)) ||
+        if (this.position.y > CONST.TILE * CONST.HEIGHT || (cell && cell.type === "die" && this.collide(cell)) ||
             (celldown && celldown.type === "die" && this.collide(celldown)) ||
             (celldiag && celldiag.type === "die" && this.collide(celldiag)) ||
             (cellright && cellright.type === "die" && this.collide(cellright))) {
             Sound.play("hurt");
             document.dispatchEvent(new CustomEvent('guyDeath'));
-            return;
+            return true;
         }
 
 
@@ -108,6 +124,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
             if ((celldown && !cell && celldown.block) ||
                 (celldiag && !cellright && nx && celldiag.block)) {
                 this.position.y = ty * CONST.TILE;       // clamp the y position to avoid falling into platform below
+            if (this.falling) Sound.play("hit");
             this.d.y = 0;            // stop downward velocity
             this.falling = false;   // no longer falling
             this.jumping = false;   // (or jumping)
@@ -120,6 +137,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const"], fun
                 ) {
                 this.position.y = CONST.TILE * (ty + 1);   // clamp the y position to avoid jumping into platform above
             this.d.y = 0;            // stop upward velocity
+            if (this.falling) Sound.play("hit");
             cell      = celldown;     // this is no longer really in that cell, we clamped them to the cell below 
             cellright = celldiag;     // (ditto)
             ny        = 0;            // this no longer overlaps the cells below

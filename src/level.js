@@ -1,4 +1,4 @@
-define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src/guy", "src/jumpable", "src/block", "src/spikes", "src/replayGuy", "src/platform", "src/fallBlock" ], function(PIXI, proton, Sound, assets, CONST, Guy, Jumpable, Block, Spikes, ReplayGuy, Platform, FallBlock) {
+define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src/guy", "src/jumpable", "src/block", "src/spikes", "src/replayGuy", "src/platform", "src/fallBlock", "src/wobble", "src/exit" ], function(PIXI, proton, Sound, assets, CONST, Guy, Jumpable, Block, Spikes, ReplayGuy, Platform, FallBlock, Wobble, Exit) {
     var Level = function() {
         this.guy = null;
         this.blocks = [];
@@ -9,6 +9,7 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.spawn = [];
         this.replays = [];
         this.dimension = 0;
+        this.canMove = true;
         this.dirs = {
             left: 0,
             right: 0,
@@ -18,50 +19,37 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.timer = 0;
         this.currentTimer = 0;
         this.maxTimer = 60 * 1000; // 1 min max recording
+        this.restart = 0;
+        this.wobbleCamX = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
+        this.wobbleCamY = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
+        this.wobbleCamRot = new Wobble(0, CONST.CAMFORCE, CONST.CAMFRICTION);
 
-        document.addEventListener('keydown', function(ev) { return onkey(ev, ev.keyCode, true);  }, false);
-        document.addEventListener('keyup',   function(ev) { return onkey(ev, ev.keyCode, false); }, false);
 
-        var that = this;
-        function onkey(ev, key, down) {
-            switch(key) {
-                case CONST.KEY.LEFT:  that.dirs.left  = down; return false;
-                case CONST.KEY.RIGHT: that.dirs.right = down; return false;
-                case CONST.KEY.UP: that.dirs.jump  = down; return false;
+
+        this.ambientEmiter = new Proton.Emitter();
+        this.ambientEmiter.damping = 0.0075;
+        this.ambientEmiter.addInitialize(new Proton.ImageTarget(assets.particle));
+        this.ambientEmiter.addInitialize(new Proton.Mass(1), new Proton.Radius(Proton.getSpan(5, 10)));
+
+        this.repulsionBehaviour = new Proton.Repulsion({x: 0, y: 0}, 0, 0);
+        this.ambientEmiter.addBehaviour(new Proton.Scale(Proton.getSpan(0.1, 0.6)));
+        this.ambientEmiter.addBehaviour(new Proton.Alpha(0.5));
+        this.ambientEmiter.addBehaviour(new Proton.RandomDrift(0, 10, 0.5));
+        this.ambientEmiter.addBehaviour(new Proton.Color('random'));
+        this.ambientEmiter.addBehaviour({
+            initialize : function(particle) {
+                particle.tha = Math.random() * Math.PI;
+                particle.thaSpeed = 0.015 * Math.random() + 0.005;
+            },
+
+            applyBehaviour : function(particle) {
+                particle.tha += particle.thaSpeed;
+                particle.alpha = Math.abs(Math.cos(particle.tha));
             }
-        }
-
-        var addDimension = function() {
-            that.dimension++;
-            if (that.dimension >= that.spawn.length) {
-                // trigger death
-                return 0;
-            }
-            var sp = that.spawn[that.dimension-1];
-            var i = 2;
-            while (!sp) {
-                sp = that.spawn[that.dimension-(i++)];
-            }
-            var r = new ReplayGuy(sp);
-            that.camera.addChild(r.sprite);
-            that.replays.push(r);
-            that.timer = that.currentTimer = 0;
-
-            //replace guy
-            i = 0;
-            sp = that.spawn[that.dimension];
-            while (!sp) {
-                sp = that.spawn[that.dimension-(i++)];
-            }
-            that.guy.position.x = sp.x;
-            that.guy.position.y = sp.y;
-            that.history[that.dimension] = [];
-        };
-
-        document.addEventListener('guyDeath', addDimension);
+        });
+        proton.addEmitter(this.ambientEmiter);
 
     };
-
 
     function depthCompare(a,b) {
         a.z = a.z || 0;
@@ -73,6 +61,11 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         return 0;
     }
 
+    Level.prototype.addBlock = function(position, block) {
+        this.tileset[Math.floor(position.x / CONST.TILE) + Math.floor(position.y / CONST.TILE) * CONST.WIDTH] = block;
+        block.block = true;
+    };
+
     Level.prototype.sort = function() {
         this.camera.children.sort(depthCompare);
     };
@@ -81,6 +74,13 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         this.lvl.width = width;
         this.lvl.height = height;
         this.lvl.data = lvl.toUpperCase();
+        var rect = new Proton.RectZone(0, 0, width * CONST.TILE, height * CONST.TILE);
+        this.ambientEmiter.addInitialize(new Proton.Position(rect));
+        this.ambientEmiter.p.x = 0;
+        this.ambientEmiter.p.y = 0;
+        this.crossZoneBehaviour = new Proton.CrossZone(rect, 'cross');
+        this.ambientEmiter.rate = new Proton.Rate(Math.min(width * height, 500));
+        this.ambientEmiter.addBehaviour(this.repulsionBehaviour, this.crossZoneBehaviour);
     };
 
     Level.prototype.setPlatformData = function(data) {
@@ -93,10 +93,44 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
         }
     };
 
+    Level.prototype.clean = function() {
+        //this.tileset.splice(0);
+        //this.replays.splice(0);
+        this.platforms.splice(0);
+        this.falls.splice(0);
+        this.spawn.splice(0);
+        this.ambientEmiter.particles.splice(0);
+        proton.emitters.splice(0);
+        proton.addEmitter(this.ambientEmiter);
+        if (this.guy) {
+            this.guy.sprite.removeStageReference();
+            delete this.guy;
+        }
+        this.camera.removeStageReference();
+        this.camera.visible = 0;
+        delete this.camera;
+        this.stage.visible = 0;
+        delete this.stage;
+        this.dimension = 0;
+    };
+
+    Level.prototype.destroy = function() {
+        this.ambientEmiter.destroy();
+        if (this.exit) this.exit.destroy();
+        this.clean();
+        proton.emitters.splice(0);
+    };
+
     Level.prototype.init = function() {
-        this.stage = PIXI.stage = new PIXI.Stage(0x101010);
-        this.camera = new PIXI.DisplayObjectContainer();
-        this.stage.addChild(this.camera);
+        if (!this.stage) {
+            this.stage = PIXI.stage = new PIXI.Stage(0x101010);
+        }
+        if (!this.camera) {
+            this.camera = PIXI.camera = new PIXI.DisplayObjectContainer();
+            this.stage.addChild(this.camera);
+
+            this.ambientEmiter.emit('once');
+        }
 
         // load Level
         var x, y, block, ind, spikes, pi = 0, pdata;
@@ -111,7 +145,19 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                 } else if (this.lvl.data.charCodeAt(ind) >= 48 && this.lvl.data.charCodeAt(ind) <= 57) { // spawn
                     this.spawn[parseInt(this.lvl.data[ind], 10)] = { x: x * CONST.TILE, y: y * CONST.TILE };
                 } else if (this.lvl.data[ind] === "S") {
-                    spikes = new Spikes(x * CONST.TILE, y * CONST.TILE);
+                    spikes = new Spikes(x * CONST.TILE, y * CONST.TILE, 0);
+                    this.camera.addChild(spikes.sprite);
+                    this.tileset[ind] = spikes;
+                } else if (this.lvl.data[ind] === "X") {
+                    spikes = new Spikes(x * CONST.TILE, y * CONST.TILE, 1); // right
+                    this.camera.addChild(spikes.sprite);
+                    this.tileset[ind] = spikes;
+                } else if (this.lvl.data[ind] === "A") { // down
+                    spikes = new Spikes(x * CONST.TILE, y * CONST.TILE, 2);
+                    this.camera.addChild(spikes.sprite);
+                    this.tileset[ind] = spikes;
+                } else if (this.lvl.data[ind] === "Z") { // left
+                    spikes = new Spikes(x * CONST.TILE, y * CONST.TILE, 3);
                     this.camera.addChild(spikes.sprite);
                     this.tileset[ind] = spikes;
                 } else if (this.lvl.data[ind] === "T") {
@@ -129,21 +175,30 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
                     block = new FallBlock(x * CONST.TILE, y * CONST.TILE);
                     this.falls.push(block);
                     this.camera.addChild(block.sprite);
+                    this.camera.addChild(block.animation);
                     this.tileset[ind] = block;
+                } else if (this.lvl.data[ind] === "E") {
+                    this.exitPos = new PIXI.Point(x, y);
+                    this.exit = new Exit(x * CONST.TILE + CONST.TILE/2,
+                                        y * CONST.TILE + CONST.TILE/2);
                 }
             }
         }
-        var sp = this.spawn[this.dimension], i = 0;
-        while (!sp && i < 200) sp = this.spawn[this.dimension+(i++)];
-        this.spawn[0] = sp; // allow single level
+        var sp = this.spawn[0], i = 0;
+        while (!sp && i < 200) sp = this.spawn[0+(i++)];
+        this.spawn[0] = sp; // allow single spawn
         this.guy = new Guy(sp);
         this.camera.addChild(this.guy.sprite);
-        window.camera = this.camera;
+        window.camera = this.camera; // XXX test
         CONST.WIDTH = this.lvl.width;
+        CONST.HEIGHT = this.lvl.height;
 
         this.camera.position.set(CONST.SCREEN.x/2, CONST.SCREEN.y/2);
-        this.history[this.dimension] = [];
-        window.his = this.history[this.dimension];
+        this.history = [];
+        this.history[0] = [];
+        this.timer = 0;
+        this.currentTimer = 0;
+        window.his = this.history[0];
     };
 
     Level.prototype.update = function(delta) {
@@ -166,7 +221,30 @@ define(["lib/pixi", "lib/proton", "lib/soundjs", "src/assets", "src/const", "src
             this.falls[i].update(delta);
         }
         this.guy.update(delta, this.tileset, this.dirs);
-        this.camera.pivot = this.guy.position.clone();
+        if (this.exitPos && !this.exit.entering && this.guy &&
+            (this.guy.collide(this.exit))) {
+            this.exit.entering = 1;
+            Sound.play("endlevel");
+            this.canMove = 0;
+            this.dirs.left = this.dirs.jump = this.dirs.right = 0;
+            this.guy.sprite.anchor.set(0.5, 0.5);
+            this.guy.position.x = this.exit.x;
+            this.guy.position.y = this.exit.y;
+            this.guy.end = true;
+        }
+        if (this.exit) this.exit.update(delta);
+        if (!this.guy) return;
+        this.repulsionBehaviour.reset(this.guy.position, 5, 100);
+        this.wobbleCamRot.val = this.camera.rotation;
+        this.wobbleCamX.update(delta);
+        this.wobbleCamY.update(delta);
+        this.wobbleCamRot.update(delta);
+        this.wobbleCamX.valTo = this.guy.position.x;
+        this.wobbleCamY.valTo = this.guy.position.y;
+        this.camera.pivot.x = this.wobbleCamX.val;
+        this.camera.pivot.y = this.wobbleCamY.val;
+        this.wobbleCamRot.valTo = 0;
+        this.camera.rotation = this.wobbleCamRot.val;
     };
 
     return Level;

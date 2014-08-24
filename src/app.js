@@ -1,5 +1,5 @@
-define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src/level", "src/const"],
-       function(PIXI, stats, proton, Sound, assets, Level, CONST) {
+define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src/levelSet", "src/const"],
+       function(PIXI, stats, proton, Sound, assets, LevelSet, CONST) {
     return {
         start: function() {
             var canvas;
@@ -33,7 +33,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 renderer.onParticleCreated = function(particle) {
                     var particleSprite = new PIXI.Sprite(particle.target);
                     particle.sprite = particleSprite;
-                    PIXI.stage.addChild(particle.sprite);
+                    PIXI.camera.addChild(particle.sprite);
                 };
 
                 renderer.onParticleUpdate = function(particle) {
@@ -41,7 +41,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 };
 
                 renderer.onParticleDead = function(particle) {
-                    PIXI.stage.removeChild(particle.sprite);
+                    PIXI.camera.removeChild(particle.sprite);
                 };
                 renderer.start();
             };
@@ -56,6 +56,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 particleSprite.scale.y = particle.scale;
                 particleSprite.anchor.x = 0.5;
                 particleSprite.anchor.y = 0.5;
+                particleSprite.z = 5;
                 particleSprite.alpha = particle.alpha;
                 particleSprite.rotation = particle.rotation * Math.PI / 180;
             };
@@ -69,7 +70,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 stats.begin();
                 proton.update();
                 while (lvl && delta > step) {
-                    lvl.update(Math.min(delta, step));
+                    lvl.level.update(Math.min(delta, step));
                     delta -= step;
                 }
                 if (stage.logo) {
@@ -84,39 +85,18 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
             document.getElementById('container').textContent = "";
             addStats();
             createRender();
-            // TODO add tick here? do the work on asset load + function
             assets.load(PIXI.stage, pixiRender, function() {
-                lvl = new Level();
-                lvl.setLevelData(32, 10,
-                                 "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"+
-                                 "B        1               5   4 B"+
-                                 "B   0    TT             BB     B"+
-                                 "B   -                          B"+
-                                 "B             2          FFFFFFB"+
-                                 "B             BBBB             B"+
-                                 "B BBB                          B"+
-                                 "B                        BBBBBBB"+
-                                 "B                    BBBSBBSSBBB"+
-                                 "BBBBBBBBSSSSBBBBBBBBBBBBBBBBBBBB"
-                                );
-                lvl.setPlatformData([
-                    {
-                    from: new PIXI.Point(32, 128),
-                    to: new PIXI.Point(128, 128),
-                    jumpable: true,
-                    speed: 10,
-                    timer: 2000,
-                    }
-                ]);
-                lvl.init();
-                var bitmapFontText = new PIXI.BitmapText("bitmap fonts are\n now supported!", {font: "35px Megafont", align: "left"});
-                bitmapFontText.position.x = 0;
-                bitmapFontText.position.y = 20;
-                bitmapFontText.z = 10;
-
-                stage.addChild(bitmapFontText);
-
-                lvl.sort();
+                lvl = new LevelSet();
+                lvl.loadCurrent();
+                //lvl.setPlatformData([
+                    //{
+                    //from: new PIXI.Point(32, 128),
+                    //to: new PIXI.Point(128, 128),
+                    //jumpable: true,
+                    //speed: 10,
+                    //timer: 2000,
+                    //}
+                //]);
 
             });
             tick();
