@@ -5,8 +5,6 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
         this.currentLevel = 0;
         this.level = null;
 
-        document.removeEventListener('keydown');
-        document.removeEventListener('keyup');
         document.addEventListener('keydown', function(ev) { return onkey(ev, ev.keyCode, true);  }, false);
         document.addEventListener('keyup',   function(ev) { return onkey(ev, ev.keyCode, false); }, false);
 
@@ -73,10 +71,8 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
             that.level.sort();
         };
 
-        document.removeEventListener('guyDeath');
         document.addEventListener('guyDeath', addDimension);
 
-        document.removeEventListener('replayEnd');
         document.addEventListener('replayEnd', function(ev) {
             that.level.addBlock(ev.detail.position, ev.detail.block);
         });
@@ -289,7 +285,7 @@ define(["lib/pixi", "lib/stats", "lib/proton", "lib/soundjs", "src/assets", "src
                 {
                 x: 48,
                 y: 32 * 7,
-                str: "Trust yourself, use yoruself...",
+                str: "Trust yourself, use yourself...",
                 size: 27
                 }
             ]
