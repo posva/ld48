@@ -29,9 +29,9 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
     assets.load = function(stage, render, fun) {
         var loader = new PIXI.AssetLoader(this.textures.concat(this.fonts));
         var that = this;
-        var backRect = new PIXI.Graphics(),
-        progress = new PIXI.Graphics(),
-        w = 320, h = 80;
+        var backRect = new PIXI.Graphics()
+        var progress = new PIXI.Graphics()
+        var w = 320, h = 80;
         backRect.lineStyle(2, 0x0c0c0c, 1);
         backRect.drawRect(render.width/2-w/2,
             render.height/2-h/2,
@@ -103,13 +103,11 @@ define(["lib/pixi", "lib/soundjs"], function(PIXI, Sound) {
         WebFontConfig = {
           google: {
             families: [ 'Snippet', 'Arvo:700italic', 'Podkova:700' ]
-          },
-
-          active: function() {
-            loader.load();
           }
 
         };
+
+      loader.load();
         (function() {
             var wf = document.createElement('script');
             wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
